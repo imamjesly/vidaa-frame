@@ -1,15 +1,16 @@
 /* VIDAA Frame — your settings. Edit, re-upload to GitHub, the TV picks it up next open.
    Plain ES5 (old TV browser): no arrow functions, no let/const, no trailing commas. */
 window.VF_CONFIG = {
-  version: '4.0.0',
+  version: '5.0.0',
   author: 'Imaam Jesly',
 
   clock: { use24h: false, showDate: true },
 
   weather: { on: true, lat: -37.8136, lon: 144.9631, place: 'Melbourne' },
 
-  /* Liquid-glass Spotify widget. Paste any Spotify playlist/album/track link here. */
-  music: { on: true, uri: 'spotify:playlist:37i9dQZF1DX5trt9i14X7j', label: 'Spotify' },
+  /* Spotify Premium — real account playback via the launcher (press ▶II on the remote).
+     defaultUri plays if nothing is already going; otherwise it resumes your last session. */
+  spotify: { on: true, clientId: '015e913e5eda4eeab121a2fd20ed4332', defaultUri: 'spotify:playlist:37i9dQZF1DX5trt9i14X7j' },
 
   wallpaper: {
     mode: 'live', videoFile: 'live.mp4', minutesPerPhoto: 2,

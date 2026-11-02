@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
 <title>VIDAA Frame</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <div id="stage">
@@ -25,7 +25,19 @@
     <div id="date"></div>
   </div>
 
-  <div id="music"><div class="mcard sheen"><span class="mtag">▶II to hide</span><div class="mframe"><div id="spot"></div></div></div></div>
+  <div id="music"><div class="mcard sheen">
+    <div class="mart" id="mart"><div class="martph">♪</div></div>
+    <div class="minfo">
+      <div class="mtitle" id="mtitle">Spotify</div>
+      <div class="martist" id="martist">Press OK to connect</div>
+      <div class="mprog"><span class="mt" id="mcur">0:00</span><div class="mbar"><div class="mfill" id="mfill"></div></div><span class="mt" id="mdur">0:00</span></div>
+    </div>
+    <div class="mctl">
+      <div class="mbtn" id="mprev"><svg viewBox="0 0 48 48" fill="#fff"><polygon points="16,10 16,38 14,38 14,10"/><polygon points="36,10 18,24 36,38"/></svg></div>
+      <div class="mbtn mbig" id="mplay"><svg id="mplayIcon" viewBox="0 0 48 48" fill="#fff"><polygon points="16,10 38,24 16,38"/></svg></div>
+      <div class="mbtn" id="mnext"><svg viewBox="0 0 48 48" fill="#fff"><polygon points="32,10 32,38 34,38 34,10"/><polygon points="12,10 30,24 12,38"/></svg></div>
+    </div>
+  </div></div>
 
   <div id="rows">
     <div class="row" id="rowDock"><div class="track" id="trackDock"></div></div>
@@ -37,10 +49,11 @@
     <div id="sheetHint"></div>
   </div>
 </div>
-<script src="config.js?v=4"></script>
-<script src="apps.js?v=4"></script>
-<script src="vidaa.js?v=4"></script>
-<script src="main.js?v=4"></script>
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+<script src="config.js?v=5"></script>
+<script src="apps.js?v=5"></script>
+<script src="vidaa.js?v=5"></script>
+<script src="spotify.js?v=5"></script>
+<script src="main.js?v=5"></script>
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
 </body>
 </html>

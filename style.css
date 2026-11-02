@@ -62,13 +62,26 @@ body { font-family: Manrope, -apple-system, "SF Pro Display", "Segoe UI", Arial,
 .icon.focus .lbl { opacity: 1; }
 
 /* ---- Music widget: compact now-playing beside the clock, hidden until Play/Pause ---- */
-#music { position: absolute; left: 812px; top: 150px; width: 820px; opacity: 0; transform: translateY(-16px); pointer-events: none; transition: opacity .3s ease, transform .3s var(--spring); }
-#music.show { opacity: 1; transform: translateY(0); }
-.mcard { position: relative; border-radius: 34px; padding: 16px 18px; overflow: hidden;
-  background: var(--panel); border: 1px solid var(--tileEdge); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 20px 46px rgba(0,0,0,.5); }
-.mframe { border-radius: 22px; overflow: hidden; background: #121216; min-height: 152px; }
-.mframe iframe { display: block; width: 100%; height: 152px; border: 0; }
-.mtag { position: absolute; right: 24px; top: 14px; font-size: 19px; opacity: .55; }
+#music { position: absolute; left: 812px; top: 150px; width: 900px; opacity: 0; transform: translateY(-16px); pointer-events: none; transition: opacity .3s ease, transform .3s var(--spring); }
+#music.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.mcard { position: relative; border-radius: 34px; padding: 22px 26px; overflow: hidden; height: 196px;
+  background: var(--panel); border: 1px solid var(--tileEdge); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 20px 46px rgba(0,0,0,.5); transition: box-shadow .2s; }
+#music.focus .mcard { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 24px 54px rgba(0,0,0,.6), 0 0 0 4px rgba(255,255,255,.5); }
+.mart { position: absolute; left: 26px; top: 22px; width: 152px; height: 152px; border-radius: 20px; overflow: hidden; background: #26262e; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+.mart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.martph { width: 100%; height: 100%; text-align: center; line-height: 152px; font-size: 64px; opacity: .5; }
+.minfo { position: absolute; left: 200px; right: 26px; top: 24px; }
+.mtitle { font-size: 36px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.martist { margin-top: 4px; font-size: 26px; opacity: .72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mprog { margin-top: 18px; display: block; }
+.mprog .mt { font-size: 21px; opacity: .7; vertical-align: middle; }
+.mbar { display: inline-block; vertical-align: middle; width: 440px; height: 7px; margin: 0 14px; border-radius: 4px; background: rgba(255,255,255,.22); overflow: hidden; }
+.mfill { height: 100%; width: 0; background: #fff; border-radius: 4px; }
+.mctl { position: absolute; left: 200px; bottom: 18px; }
+.mbtn { display: inline-block; width: 52px; height: 52px; margin-right: 22px; border-radius: 50%; background: rgba(255,255,255,.12); vertical-align: middle; cursor: pointer; transition: background-color .2s, transform .15s; }
+.mbtn svg { width: 30px; height: 30px; margin: 11px; }
+.mbtn.mbig { width: 68px; height: 68px; } .mbtn.mbig svg { width: 40px; height: 40px; margin: 14px; }
+.mbtn:hover { background: rgba(255,255,255,.26); transform: scale(1.06); }
 
 /* ---- Sheets ---- */
 #sheet { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: rgba(6,8,13,.92); opacity: 1; transition: opacity .25s ease; }
@@ -104,5 +117,9 @@ body.sheet-open #clock, body.sheet-open #rows, body.sheet-open #status, body.she
 .info .credit { font-size: 29px; line-height: 1.55; } .info .credit .big { font-size: 40px; font-weight: 700; }
 .info .btn { display: inline-block; margin-top: 2px; padding: 16px 32px; border-radius: 999px; font-size: 26px; font-weight: 700; background: var(--tile); border: 1px solid var(--tileEdge); transition: transform .2s var(--spring), background-color .2s; }
 .info .btn.focus { transform: scale(1.05); background: var(--focus); color: #0a0a0a; }
-.fnlist { position: absolute; left: 0; top: 0; font-family: "SF Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 21px; line-height: 32px; transition: transform .2s; }
+.info { transition: transform .2s; }
+.fnlist { font-family: "SF Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 21px; line-height: 32px; }
+.fnlist div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fnlist .warn { color: #ff8f8f; } .fnlist .get { color: #8fe3a4; }
+/* mouse: show pointer on interactive elements */
+.icon, .gtile, .info .btn, #sheet { cursor: pointer; }
