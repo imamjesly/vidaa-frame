@@ -1,12 +1,14 @@
-/* VIDAA Frame 3.0 — iOS 26 Liquid Glass launcher. Design language from CleanFrame (MIT). ES5. */
+/* VIDAA Frame 4.0 — performance-tuned launcher + on-demand Spotify widget. ES5. */
 (function () {
   'use strict';
   var C = window.VF_CONFIG, INSTALLED = window.VF_INSTALLED || [], D = window.VidaaDevice;
   var $ = function (id) { return document.getElementById(id); };
   var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 8: 'back', 27: 'back', 461: 'back', 10009: 'back', 10073: 'back' };
-  var PITCH = 216, VIEW_W = 1728;
-  var MUSIC = !!(C.music && C.music.on);
-  var S = { row: 0, i: 0, sheet: null, grid: [], gi: 0, fnOpen: false, scroll: 0, btn: false, pos: 0, dur: 0 };
+  /* media Play/Pause — read the TV's own codes at runtime, plus common fallbacks */
+  function num(v) { return typeof v === 'number' ? v : -1; }
+  var PLAYPAUSE = [num(window.VK_PLAY_PAUSE), num(window.VK_PLAY), num(window.VK_PAUSE), num(window.KEY_PLAY), num(window.KEY_PAUSE), 179, 415, 19, 10252, 402].filter(function (x) { return x > 0; });
+  var PITCH = 216, VIEW_W = 1728, MUSIC = !!(C.music && C.music.on);
+  var S = { i: 0, sheet: null, grid: [], gi: 0, fnOpen: false, scroll: 0, btn: false, pos: 0, mShow: false, mStarted: false };
 
   var G = {
     safari: '<circle cx="24" cy="24" r="19"/><polygon class="f" points="24,24 33,15 26,26 15,33" stroke="none"/><line x1="24" y1="3" x2="24" y2="8"/><line x1="24" y1="40" x2="24" y2="45"/><line x1="3" y1="24" x2="8" y2="24"/><line x1="40" y1="24" x2="45" y2="24"/>',
@@ -17,28 +19,25 @@
   };
   function glyph(n) { return '<svg class="glyph" viewBox="0 0 48 48" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' + (G[n] || G.grid) + '</svg>'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-
   function iconInner(a) {
-    if (a.logo) return '<div class="sq"><img src="' + esc(a.logo) + '" alt=""></div>';
-    return '<div class="sq tinted" style="background:' + esc(a.tint || '#2f3038') + '">' + glyph(a.glyph) + '</div>';
+    if (a.logo) return '<div class="sq sheen"><img src="' + esc(a.logo) + '" alt=""></div>';
+    return '<div class="sq sheen" style="background:' + esc(a.tint || '#2f3038') + '">' + glyph(a.glyph) + '</div>';
   }
 
-  var STORE = 'vidaaframe.v3';
-  function load() { try { var v = JSON.parse(localStorage.getItem(STORE) || 'null'); if (v) { S.row = v.row | 0; S.i = v.i | 0; } } catch (e) {} }
-  function save() { try { localStorage.setItem(STORE, JSON.stringify({ row: S.row, i: S.i })); } catch (e) {} }
+  var STORE = 'vidaaframe.v4';
+  function loadS() { try { var v = JSON.parse(localStorage.getItem(STORE) || 'null'); if (v) S.i = v.i | 0; } catch (e) {} }
+  function saveS() { try { localStorage.setItem(STORE, JSON.stringify({ i: S.i })); } catch (e) {} }
 
   function fit() {
     var w = window.innerWidth || 1920, h = window.innerHeight || 1080, k = Math.min(w / 1920, h / 1080);
     $('stage').style.transform = 'translate(' + Math.round((w - 1920 * k) / 2) + 'px,' + Math.round((h - 1080 * k) / 2) + 'px) scale(' + k + ')';
   }
 
-  /* clock */
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var lastMin = -1;
   function tick() {
-    var d = new Date(), key = d.getHours() * 60 + d.getMinutes();
-    if (key === lastMin) return; lastMin = key;
+    var d = new Date(), key = d.getHours() * 60 + d.getMinutes(); if (key === lastMin) return; lastMin = key;
     var h = d.getHours(), mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     if (C.clock.use24h) { $('hm').textContent = (h < 10 ? '0' : '') + h + ':' + mm; $('ampm').textContent = ''; }
     else { $('hm').textContent = ((h % 12) || 12) + ':' + mm; $('ampm').textContent = h < 12 ? 'AM' : 'PM'; }
@@ -46,52 +45,40 @@
   }
   function loadWeather() {
     if (!(C.weather && C.weather.on)) { $('wline').style.display = 'none'; return; }
-    D.weather(C.weather.lat, C.weather.lon, function (w) {
-      if (!w) { $('wline').textContent = C.weather.place; return; }
-      $('wline').textContent = C.weather.place + '   ' + w.tempC + '°   ' + w.text;
-    });
+    D.weather(C.weather.lat, C.weather.lon, function (w) { $('wline').textContent = w ? C.weather.place + '   ' + w.tempC + '°   ' + w.text : C.weather.place; });
   }
-
-  /* network */
   function updateNet() {
     var n = D.network(), label = D.netLabel(n);
-    $('netText').textContent = label;
-    $('netIcon').innerHTML = label === 'Ethernet' ? glyph('eth') : glyph('wifi');
+    $('netText').textContent = label; $('netIcon').innerHTML = label === 'Ethernet' ? glyph('eth') : glyph('wifi');
     $('netChip').className = n.online ? 'chip' : 'chip off';
   }
 
-  /* wallpaper */
+  /* wallpaper — static, crossfade only */
   var W = { i: 0, front: 'wallA' };
   function showPhoto(i) {
     var list = C.wallpaper.photos, url = 'wp-' + list[i % list.length] + '.jpg', img = new Image();
     img.onload = function () {
       var back = W.front === 'wallA' ? 'wallB' : 'wallA';
-      $(back).style.backgroundImage = 'url(' + url + ')';
-      $(back).className = 'layer on ' + (i % 2 ? 'drift-b' : 'drift-a');
-      $(W.front).className = 'layer'; W.front = back;
+      $(back).style.backgroundImage = 'url(' + url + ')'; $(back).className = 'layer on'; $(W.front).className = 'layer'; W.front = back;
     };
     img.src = url;
   }
   function startWallpaper() {
     var v = $('wallVideo');
-    function live() { showPhoto(0); setInterval(function () { W.i += 1; showPhoto(W.i); }, Math.max(0.5, C.wallpaper.minutesPerPhoto) * 60000); }
+    function live() { showPhoto(0); if (C.wallpaper.photos.length > 1) setInterval(function () { W.i += 1; showPhoto(W.i); }, Math.max(0.5, C.wallpaper.minutesPerPhoto) * 60000); }
     if (C.wallpaper.mode === 'video') {
       var fell = false; v.onerror = function () { if (!fell) { fell = true; v.className = ''; live(); } };
       v.src = '' + C.wallpaper.videoFile; v.className = 'on';
-      try { var p = v.play(); if (p && p['catch']) p['catch'](function () { v.onerror(); }); } catch (e) { v.onerror(); }
-      return;
+      try { var p = v.play(); if (p && p['catch']) p['catch'](function () { v.onerror(); }); } catch (e) { v.onerror(); } return;
     }
     live();
   }
 
-  /* dock */
   function build() {
     $('trackDock').innerHTML = C.apps.map(function (a, i) {
       return '<div class="icon" id="d' + i + '">' + iconInner(a) + '<div class="lbl">' + esc(a.label) + '</div></div>';
     }).join('');
-    if (MUSIC) $('music').className = ''; else $('music').className = 'hidden';
   }
-  function rows() { return MUSIC ? 2 : 1; }
   function scrollDock() {
     var n = C.apps.length, full = n * PITCH, x = 0;
     if (full > VIEW_W) x = Math.min(Math.max(0, S.i * PITCH - PITCH), full - VIEW_W + 40);
@@ -100,42 +87,42 @@
   function paint() {
     var els = document.querySelectorAll('#rowDock .icon'), k;
     for (k = 0; k < els.length; k++) els[k].className = els[k].className.replace(' focus', '');
-    if (!S.sheet && S.row === 0) { var el = $('d' + S.i); if (el) el.className += ' focus'; }
-    var mc = $('mcard'); if (mc) mc.className = 'mcard' + (!S.sheet && S.row === 1 ? ' focus' : '');
+    if (!S.sheet) { var el = $('d' + S.i); if (el) el.className += ' focus'; }
     scrollDock();
   }
 
-  /* open */
   function findInstalled(p) { var re = new RegExp(p, 'i'); for (var i = 0; i < INSTALLED.length; i++) if (re.test(INSTALLED[i].name)) return INSTALLED[i]; return null; }
-  function openUrl(u) { if (!D.isTV()) { flash('Preview', 'On the TV this opens:\n' + u); return; } save(); D.open(u); }
+  function openUrl(u) { if (!D.isTV()) { flash('Preview', 'On the TV this opens:\n' + u); return; } saveS(); D.open(u); }
   function activate(a) {
     if (a.type === 'folder') return openMore();
     if (a.type === 'info') return openInfo();
     if (a.type === 'web') return openUrl(a.url);
     if (a.type === 'match') {
       var hit = findInstalled(a.match);
-      if (hit && hit.web && hit.url) openUrl(hit.url);
-      else if (a.fallback) openUrl(a.fallback);
-      else nativeBlocked(a.label);
+      if (hit && hit.web && hit.url) openUrl(hit.url); else if (a.fallback) openUrl(a.fallback); else nativeBlocked(a.label);
     }
   }
 
-  /* ---- Spotify music widget ---- */
-  var spotCtl = null;
-  window.onSpotifyIframeApiReady = function (IFrameAPI) {
-    if (!MUSIC) return;
+  /* ---- Spotify widget (lazy; only built on first Play/Pause) ---- */
+  var spotCtl = null, spotPaused = true, apiReady = null;
+  window.onSpotifyIframeApiReady = function (IFrameAPI) { apiReady = IFrameAPI; if (S.mStarted) buildSpot(); };
+  function buildSpot() {
+    if (spotCtl || !apiReady) return;
     try {
-      IFrameAPI.createController($('spot'), { uri: C.music.uri, width: '100%', height: 152, theme: 'dark' }, function (ctl) {
+      apiReady.createController($('spot'), { uri: C.music.uri, width: '100%', height: 152, theme: 'dark' }, function (ctl) {
         spotCtl = ctl;
-        ctl.addListener('playback_update', function (e) {
-          S.pos = (e.data.position || 0) / 1000; S.dur = (e.data.duration || 0) / 1000;
-          $('mhint').textContent = e.data.isPaused ? 'OK to play' : 'OK to pause  ·  ◀ ▶ seek';
-        });
+        ctl.addListener('playback_update', function (e) { S.pos = (e.data.position || 0) / 1000; spotPaused = !!e.data.isPaused; });
+        try { ctl.play(); } catch (e2) {}
       });
-    } catch (err) { $('mhint').textContent = 'Music unavailable'; }
-  };
-  function musicToggle() { try { if (spotCtl) spotCtl.togglePlay(); } catch (e) {} }
-  function musicSeek(delta) { try { if (spotCtl) spotCtl.seek(Math.max(0, S.pos + delta)); } catch (e) {} }
+    } catch (err) {}
+  }
+  function musicKey() {
+    if (!MUSIC) return;
+    if (!S.mStarted) { S.mStarted = true; buildSpot(); showMusic(true); return; }
+    showMusic(true);
+    try { if (spotCtl) spotCtl.togglePlay(); } catch (e) {}
+  }
+  function showMusic(on) { S.mShow = on; $('music').className = on ? 'show' : ''; }
 
   /* ---- sheets ---- */
   function openSheet(kind, title, hint, html) {
@@ -145,7 +132,7 @@
   }
   function closeSheet() {
     var s = $('sheet'); s.className = 'closing';
-    S.closeTimer = setTimeout(function () { if (!S.sheet) s.className = 'hidden'; S.closeTimer = 0; }, 280);
+    S.closeTimer = setTimeout(function () { if (!S.sheet) s.className = 'hidden'; S.closeTimer = 0; }, 240);
     S.sheet = null; S.fnOpen = false; document.body.className = ''; paint();
   }
   function openMore() {
@@ -166,7 +153,6 @@
       '<div class="sub">This is a built‑in TV app.</div><ol><li>Press Home on the remote</li><li>Open ' + esc(name) + ' from the TV’s own row</li></ol></div>');
   }
   function flash(t, m) { openSheet('cc', '', 'Back to close', '<div class="cc"><h2>' + esc(t) + '</h2><div class="sub" style="white-space:pre-line">' + esc(m) + '</div></div>'); }
-
   function openInfo() {
     var di = D.deviceInfo(), n = D.network(), dev = '';
     var order = [['model', 'Model'], ['firmware', 'Firmware'], ['os', 'System'], ['chromium', 'Browser engine'], ['brand', 'Brand'], ['region', 'Region']];
@@ -190,7 +176,9 @@
   /* input */
   var held = {};
   function key(e) {
-    var k = KEYS[e.keyCode]; if (!k) return; e.preventDefault();
+    var code = e.keyCode;
+    if (PLAYPAUSE.indexOf(code) >= 0) { e.preventDefault(); musicKey(); return; }
+    var k = KEYS[code]; if (!k) return; e.preventDefault();
     if (k === 'ok' || k === 'back') { if (held[k]) return; held[k] = true; }
 
     if (S.sheet === 'more') {
@@ -215,28 +203,20 @@
       return;
     }
 
-    if (S.row === 1) { /* music widget */
-      if (k === 'up') { S.row = 0; save(); return paint(); }
-      if (k === 'ok') return musicToggle();
-      if (k === 'left') return musicSeek(-15);
-      if (k === 'right') return musicSeek(15);
-      return;
-    }
-    /* dock */
+    /* home screen */
+    if (k === 'back' && S.mShow) { showMusic(false); return; }   /* Back hides the music card (keeps playing) */
     if (k === 'left' && S.i > 0) S.i--;
     else if (k === 'right' && S.i < C.apps.length - 1) S.i++;
-    else if (k === 'down' && MUSIC) { S.row = 1; }
     else if (k === 'ok') return activate(C.apps[S.i]);
     else return;
-    save(); paint();
+    saveS(); paint();
   }
   function keyUp(e) { var k = KEYS[e.keyCode]; if (k) held[k] = false; }
 
-  /* boot */
-  load(); S.i = Math.min(S.i, C.apps.length - 1); if (S.row === 1 && !MUSIC) S.row = 0;
+  loadS(); S.i = Math.min(S.i, C.apps.length - 1);
   build(); fit(); tick(); paint(); startWallpaper(); updateNet(); loadWeather();
-  setInterval(tick, 1000); setInterval(updateNet, 15000);
+  setInterval(tick, 1000); setInterval(updateNet, 20000);
   window.addEventListener('resize', fit);
   document.addEventListener('keydown', key); document.addEventListener('keyup', keyUp);
-  window.VF = { state: function () { return { row: S.row, i: S.i, sheet: S.sheet }; } };
+  window.VF = { state: function () { return { i: S.i, sheet: S.sheet, mShow: S.mShow }; }, music: musicKey };
 }());
