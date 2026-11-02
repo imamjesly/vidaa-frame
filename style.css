@@ -1,0 +1,77 @@
+/* VIDAA Frame — 1920x1080 logical stage, scaled to the screen. No backdrop-filter, no flex gap, no inset:
+   the VIDAA browser is an older Chromium, and live blur is too heavy for a TV GPU. */
+@font-face { font-family: Manrope; src: url(manrope.woff2) format("woff2"); font-weight: 400 800; }
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+body { font-family: Manrope, "Segoe UI", Arial, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; }
+
+/* Live wallpaper */
+#wall, #wall .layer, #wallVideo, #scrim { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+#wall .layer { background-size: cover; background-position: 50% 50%; opacity: 0; transition: opacity 2.4s ease; will-change: transform, opacity; }
+#wall .layer.on { opacity: 1; }
+#wall .layer.drift-a { animation: driftA 150s linear infinite alternate; }
+#wall .layer.drift-b { animation: driftB 150s linear infinite alternate; }
+@keyframes driftA { from { transform: scale(1.06) translate(-14px, 6px); } to { transform: scale(1.16) translate(26px, -14px); } }
+@keyframes driftB { from { transform: scale(1.16) translate(20px, 10px); } to { transform: scale(1.06) translate(-22px, -8px); } }
+#wallVideo { object-fit: cover; display: none; }
+#wallVideo.on { display: block; }
+#scrim { background: linear-gradient(180deg, rgba(0,0,0,.42) 0%, rgba(0,0,0,0) 34%, rgba(0,0,0,0) 44%, rgba(0,0,0,.62) 100%); }
+
+/* Clock widget */
+#clock { position: absolute; left: 120px; top: 92px; text-shadow: 0 2px 18px rgba(0,0,0,.35); }
+#greet { font-size: 30px; font-weight: 500; opacity: .86; letter-spacing: .2px; }
+#time { margin-top: 2px; line-height: 1; }
+#hm { font-size: 168px; font-weight: 300; letter-spacing: -5px; }
+#ampm { font-size: 44px; font-weight: 500; margin-left: 14px; opacity: .85; }
+#date { margin-top: 14px; font-size: 34px; font-weight: 500; opacity: .9; }
+
+/* Rows */
+#rows { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+.row { position: absolute; left: 0; width: 1920px; }
+#rowApps { top: 548px; height: 290px; }
+#rowConn { top: 858px; height: 180px; }
+.label { position: absolute; left: 120px; top: 0; font-size: 24px; font-weight: 700; letter-spacing: 2.4px; text-transform: uppercase; opacity: .62; transition: opacity .25s; }
+.row.active .label { opacity: 1; }
+.track { position: absolute; left: 120px; top: 46px; white-space: nowrap; transition: transform .32s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+
+.tile { position: relative; display: inline-block; vertical-align: top; margin-right: 34px; border-radius: 30px;
+  background: rgba(20,20,26,.46); border: 2px solid rgba(255,255,255,.16); box-shadow: 0 10px 30px rgba(0,0,0,.22);
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), background-color .22s, border-color .22s, box-shadow .22s; }
+.tile .ic { position: absolute; left: 0; top: 0; width: 100%; text-align: center; }
+.tile .ic img, .tile .ic svg { display: inline-block; }
+.tile .nm { position: absolute; left: 0; bottom: 18px; width: 100%; text-align: center; font-size: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app { width: 290px; height: 210px; }
+.app .ic { top: 34px; }
+.app .ic img, .app .ic svg { width: 96px; height: 96px; }
+.app .badge { display: inline-block; width: 96px; height: 96px; line-height: 96px; border-radius: 26px; font-size: 54px; font-weight: 800; }
+.conn { width: 236px; height: 118px; border-radius: 26px; }
+.conn .ic { top: 16px; }
+.conn .ic svg { width: 46px; height: 46px; }
+.conn .nm { bottom: 12px; font-size: 22px; }
+
+.tile.focus { transform: scale(1.09); background: rgba(255,255,255,.94); border-color: #fff; box-shadow: 0 18px 46px rgba(0,0,0,.40), 0 0 0 6px rgba(255,255,255,.22); color: #111; }
+.conn.focus svg path, .conn.focus svg circle, .conn.focus svg rect, .conn.focus svg polyline, .conn.focus svg line { stroke: #111; }
+.conn.focus svg .fill { fill: #111; }
+.app .badge img, .app .badge svg { width: 60px; height: 60px; margin-top: 18px; }
+
+/* Panels (More Apps, Launcher info) */
+#panel { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: rgba(8,8,12,.95); }
+body.panel-open #clock, body.panel-open #rows { visibility: hidden; }
+#panel.hidden, #toast.hidden { display: none; }
+#panelTitle { position: absolute; left: 120px; top: 84px; font-size: 56px; font-weight: 700; }
+#panelHint { position: absolute; left: 120px; bottom: 56px; font-size: 24px; opacity: .6; }
+#panelBody { position: absolute; left: 120px; top: 190px; width: 1680px; height: 780px; overflow: hidden; }
+.grid { position: absolute; left: 0; top: 0; width: 1680px; transition: transform .3s; }
+.grid .tile { margin: 0 34px 34px 0; }
+.empty { font-size: 32px; line-height: 1.5; opacity: .85; width: 1400px; white-space: normal; }
+.diag { position: absolute; left: 0; top: 0; width: 1680px; font-size: 22px; line-height: 34px; font-family: Consolas, "DejaVu Sans Mono", monospace; transition: transform .2s; }
+.diag .h { font-family: Manrope, sans-serif; font-size: 28px; font-weight: 700; margin-top: 18px; color: #ffd27a; }
+.diag .warn { color: #ff8f8f; }
+.diag .go { color: #8fe3a4; }
+.diag .src { opacity: .55; font-size: 18px; line-height: 26px; padding-left: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Toast */
+#toast { position: absolute; left: 50%; top: 420px; width: 1100px; margin-left: -550px; padding: 26px 36px; border-radius: 26px;
+  background: rgba(15,15,20,.92); border: 2px solid rgba(255,255,255,.18); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+#toastMsg { font-size: 30px; font-weight: 700; }
+#toastDetail { margin-top: 8px; font-size: 25px; line-height: 1.4; opacity: .82; white-space: normal; }

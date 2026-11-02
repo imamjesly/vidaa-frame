@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>VIDAA Frame</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <div id="wall">
+    <div class="layer" id="wallA"></div>
+    <div class="layer" id="wallB"></div>
+    <video id="wallVideo" muted loop playsinline></video>
+    <div id="scrim"></div>
+  </div>
+
+  <div id="clock">
+    <div id="greet"></div>
+    <div id="time"><span id="hm">--:--</span><span id="ampm"></span></div>
+    <div id="date"></div>
+  </div>
+
+  <div id="rows">
+    <div class="row" id="rowApps"><div class="label">Apps</div><div class="track" id="trackApps"></div></div>
+    <div class="row" id="rowConn"><div class="label">Connections</div><div class="track" id="trackConn"></div></div>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div id="panelTitle"></div>
+    <div id="panelBody"></div>
+    <div id="panelHint"></div>
+  </div>
+
+  <div id="toast" class="hidden"><div id="toastMsg"></div><div id="toastDetail"></div></div>
+</div>
+<script src="config.js"></script>
+<script src="vidaa.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
