@@ -1,48 +1,48 @@
-/* VIDAA Frame — your settings. Edit this file, re-upload, and the TV picks it up on next launch.
-   Plain ES5 only (the TV browser is old): no arrow functions, no `let`/`const`, no trailing commas. */
+/* VIDAA Frame — your settings. Edit, re-upload to GitHub, the TV picks it up next open.
+   Plain ES5 (old TV browser): no arrow functions, no let/const, no trailing commas. */
 window.VF_CONFIG = {
-  owner: 'Imaam',
+  version: '2.0.0',
+  author: 'Imaam Jesly',
 
   clock: {
-    use24h: false,          // true = 21:40, false = 9:40 pm
-    showDate: true,
-    showGreeting: true      // "Good evening, Imaam"
+    use24h: false,       // true = 21:40 ; false = 9:40
+    showDate: true
   },
 
   wallpaper: {
-    // 'live'  = slow drifting photos that cross-fade (Ken Burns)
-    // 'video' = loops <videoFile> next to index.html (muted). Falls back to 'live' if it can't play.
-    mode: 'live',
+    mode: 'live',        // 'live' = drifting photos ; 'video' = loop assets/live/live.mp4
     videoFile: 'live.mp4',
     minutesPerPhoto: 2,
-    photos: ['golden', 'sydney', 'misty', 'night', 'peaks', 'cove', 'valley', 'forest', 'alpine', 'bridge']
+    photos: ['golden', 'sydney', 'night', 'peaks', 'misty', 'cove', 'valley', 'forest', 'alpine', 'bridge']
   },
 
-  /* Row 1 — scroll sideways. Order here = order on screen.
-     type 'web'    : opens the URL (in the TV Browser when available, so you get a cursor).
-     type 'app'    : opens the installed VIDAA app whose name matches `match`; else `fallbackUrl`.
-     type 'folder' : the More Apps folder (every other installed app). */
+  /* Dock — scroll Left/Right. Takip first.
+     web   : opens the address inside the launcher (login stays saved).
+     match : finds the installed VIDAA app by name; opens its web app. fallback used if absent.
+     folder: the More Apps grid of everything installed. */
   apps: [
-    { id: 'takip',   name: 'Takip724',  type: 'web', url: 'https://www.takip724.com/vehicle-tracking-system/', mark: 'T', color: '#e2552d', inBrowser: true },
-    { id: 'youtube', name: 'YouTube',   type: 'app', match: 'youtube',   fallbackUrl: 'https://www.youtube.com/tv', icon: 'ic-youtube.svg', color: '#ff0033' },
-    { id: 'spotify', name: 'Spotify',   type: 'app', match: 'spotify',   fallbackUrl: 'https://open.spotify.com',   icon: 'ic-spotify.svg', color: '#1db954' },
-    { id: 'appletv', name: 'Apple TV',  type: 'app', match: 'apple tv',  fallbackUrl: 'https://tv.apple.com',       icon: 'ic-appletv.svg', color: '#1c1c1e' },
-    { id: 'browser', name: 'Browser',   type: 'app', match: 'browser',   glyph: 'globe', color: '#2f6fe4' },
-    { id: 'more',    name: 'More Apps', type: 'folder', glyph: 'grid', color: '#3a3a44' }
+    { id: 'takip',   label: 'Takip724', type: 'web',    url: 'https://www.takip724.com/vehicle-tracking-system/', icon: 'takip.png', tint: '#e2552d' },
+    { id: 'youtube', label: 'YouTube',  type: 'match',  match: 'youtube',  fallback: 'https://www.youtube.com/tv', icon: 'ic-youtube.svg', tint: '#ff0033' },
+    { id: 'spotify', label: 'Spotify',  type: 'match',  match: 'spotify',  fallback: 'https://open.spotify.com',   icon: 'ic-spotify.svg', tint: '#1db954' },
+    { id: 'appletv', label: 'TV',       type: 'match',  match: 'apple tv', fallback: 'https://tv.apple.com',       icon: 'ic-appletv.svg', tint: '#0a0a0a' },
+    { id: 'browser', label: 'Safari',   type: 'browser', glyph: 'safari', tint: '#1d7dfd' },
+    { id: 'more',    label: 'More Apps', type: 'folder', glyph: 'grid',    tint: '#3b3b44' }
   ],
 
-  /* Row 2 — press Down. `match` finds a matching VIDAA app/setting; `help` is shown if the TV won't open it directly. */
+  /* Connections — press Down. VIDAA blocks opening these from a web app, so each shows an
+     Apple-style panel with the exact remote steps. */
   connections: [
-    { id: 'wifi',      name: 'Wi-Fi',            glyph: 'wifi',      match: 'network', setting: 'network',
-      help: 'Remote: Settings (gear) → Network → Network Configuration.' },
-    { id: 'bluetooth', name: 'Bluetooth',        glyph: 'bluetooth', match: 'bluetooth', setting: 'bluetooth',
-      help: 'Remote: Settings → Network (or System) → Bluetooth → Equipment Management.' },
-    { id: 'airplay',   name: 'AirPlay',          glyph: 'airplay',   match: 'airplay', setting: 'airplay',
-      help: 'On your iPhone/Mac: Control Centre → Screen Mirroring → pick this TV. TV side: Settings → System → AirPlay and HomeKit.' },
-    { id: 'mirror',    name: 'Screen Mirroring', glyph: 'mirror',    match: 'mirror|screen share|anyview cast|cast',
-      help: 'Open “Screen Mirroring” from the Inputs list, then pick this TV from your phone.' },
-    { id: 'dex',       name: 'DeX',              glyph: 'dex',       match: 'mirror|screen share|anyview cast|cast',
-      help: 'Opens Screen Mirroring. On your Galaxy: Quick panel → DeX → pick this TV.' },
-    { id: 'info',      name: 'Launcher info',    glyph: 'info',      type: 'diagnostics' }
+    { id: 'wifi',      label: 'Wi‑Fi',            glyph: 'wifi',
+      steps: ['Press the gear/Settings button on the remote', 'Open Network', 'Network Configuration'] },
+    { id: 'bluetooth', label: 'Bluetooth',        glyph: 'bluetooth',
+      steps: ['Settings (gear) on the remote', 'System or Network', 'Bluetooth → Equipment Management'] },
+    { id: 'airplay',   label: 'AirPlay',          glyph: 'airplay',
+      steps: ['On your iPhone/Mac open Control Centre', 'Tap Screen Mirroring', 'Pick this TV'],
+      note: 'TV side: Settings → System → AirPlay & HomeKit must be On.' },
+    { id: 'mirror',    label: 'Screen Mirroring', glyph: 'mirror',
+      steps: ['On your phone open Smart View / Cast', 'Pick this TV', 'Accept on the TV'] },
+    { id: 'dex',       label: 'DeX',              glyph: 'dex',
+      steps: ['On your Galaxy open the Quick panel', 'Tap DeX', 'Pick this TV'] },
+    { id: 'info',      label: 'Launcher info',    glyph: 'info', type: 'info' }
   ]
 };

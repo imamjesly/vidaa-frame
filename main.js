@@ -1,272 +1,272 @@
-/* VIDAA Frame — launcher UI. Design language adapted from CleanFrame (MIT, Nathan Clark).
-   ES5 only; remote: arrows, OK, Back. */
+/* VIDAA Frame 2.0 — Apple-style launcher. Design language from CleanFrame (MIT). ES5. */
 (function () {
   'use strict';
-  var C = window.VF_CONFIG, D = window.VidaaDevice;
+  var C = window.VF_CONFIG, INSTALLED = window.VF_INSTALLED || [], D = window.VidaaDevice;
   var $ = function (id) { return document.getElementById(id); };
-  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 8: 'back', 27: 'back', 461: 'back', 10009: 'back' };
-  var APP_PITCH = 324, CONN_PITCH = 270, VISIBLE_W = 1680;
-  var S = { row: 0, idx: [0, 0], panel: null, grid: [], gi: 0, diagY: 0, diagH: 0, installed: null };
-  var STORE = 'vidaaframe.focus.v1';
+  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 8: 'back', 27: 'back', 461: 'back', 10009: 'back', 10073: 'back' };
+  var DOCK_PITCH = 332, TRAY_PITCH = 276, VIEW_W = 1736;
+  var S = { row: 0, i: [0, 0], sheet: null, grid: [], gi: 0, fnOpen: false, scroll: 0, btn: false };
 
-  /* ---------- icons (generic line glyphs, drawn here) ---------- */
+  /* ---------- glyphs ---------- */
   var G = {
-    globe: '<circle cx="24" cy="24" r="17"/><path d="M7 24h34M24 7c-6 6-6 28 0 34M24 7c6 6 6 28 0 34"/>',
-    grid: '<rect x="9" y="9" width="11" height="11" rx="3"/><rect x="28" y="9" width="11" height="11" rx="3"/><rect x="9" y="28" width="11" height="11" rx="3"/><rect x="28" y="28" width="11" height="11" rx="3"/>',
-    wifi: '<path d="M6 19c10-9 26-9 36 0M12 26c7-6 17-6 24 0M18 33c3.5-3 8.5-3 12 0"/><circle class="fill" cx="24" cy="39" r="2.4" fill="#fff" stroke="none"/>',
-    bluetooth: '<polyline points="15,15 33,32 24,40 24,8 33,16 15,33"/>',
-    airplay: '<path d="M14 34H9a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3h30a3 3 0 0 1 3 3v20a3 3 0 0 1-3 3h-5"/><path d="M24 30l9 11H15z"/>',
-    mirror: '<rect x="5" y="9" width="26" height="18" rx="3"/><rect x="31" y="18" width="12" height="22" rx="3"/><path d="M12 34h12M18 27v7"/>',
-    dex: '<rect x="5" y="8" width="38" height="25" rx="3"/><path d="M17 41h14M24 33v8M11 27h26"/>',
-    info: '<circle cx="24" cy="24" r="17"/><path d="M24 22v11M24 15v1"/>'
+    safari: '<circle cx="24" cy="24" r="19"/><polygon class="f" points="24,24 33,15 26,26 15,33" stroke="none"/><line x1="24" y1="3" x2="24" y2="8"/><line x1="24" y1="40" x2="24" y2="45"/><line x1="3" y1="24" x2="8" y2="24"/><line x1="40" y1="24" x2="45" y2="24"/>',
+    grid: '<rect x="8" y="8" width="13" height="13" rx="4"/><rect x="27" y="8" width="13" height="13" rx="4"/><rect x="8" y="27" width="13" height="13" rx="4"/><rect x="27" y="27" width="13" height="13" rx="4"/>',
+    wifi: '<path d="M5 18c11-10 27-10 38 0M12 26c7-6 17-6 24 0M19 33c3-2.5 7-2.5 10 0"/><circle class="f" cx="24" cy="39" r="2.6" stroke="none"/>',
+    bluetooth: '<polyline points="16,15 32,32 24,40 24,8 32,16 16,33"/>',
+    airplay: '<path d="M13 33H9a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3h30a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3h-4"/><path d="M24 29l10 12H14z"/>',
+    mirror: '<rect x="5" y="9" width="27" height="19" rx="3"/><rect x="32" y="18" width="11" height="22" rx="3"/><path d="M12 35h11M18 28v7"/>',
+    dex: '<rect x="4" y="8" width="40" height="26" rx="3"/><path d="M16 41h16M24 34v7M10 28h28"/>',
+    info: '<circle cx="24" cy="24" r="19"/><path d="M24 22v12M24 15v1.5"/>'
   };
   function glyph(name) {
-    return '<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' + (G[name] || G.grid) + '</svg>';
+    return '<svg class="glyph" viewBox="0 0 48 48" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' + (G[name] || G.grid) + '</svg>';
   }
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function appBadge(a) {
-    var inner;
-    if (a.icon) inner = '<img src="' + esc(a.icon) + '" alt="">';
-    else if (a.glyph) inner = glyph(a.glyph);
-    else inner = '<span>' + esc(a.mark || (a.name || '?').charAt(0)) + '</span>';
-    return '<div class="badge" style="background:' + esc(a.color || '#444') + '">' + inner + '</div>';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function dockIcon(a) {
+    if (a.icon && /\.(png|jpg|jpeg)(\?|$)/i.test(a.icon)) return '<img src="' + esc(a.icon) + '" alt="">';
+    var inner = a.icon ? '<img src="' + esc(a.icon) + '" alt="">' : glyph(a.glyph);
+    return '<span class="badge" style="background:' + esc(a.tint || '#3a3a44') + '">' + inner + '</span>';
   }
 
-  /* ---------- storage (best effort) ---------- */
-  function load() { try { var v = JSON.parse(localStorage.getItem(STORE) || 'null'); if (v && v.idx) { S.row = v.row | 0; S.idx = v.idx; } } catch (e) { /* private mode */ } }
-  function save() { try { localStorage.setItem(STORE, JSON.stringify({ row: S.row, idx: S.idx })); } catch (e) { /* ignore */ } }
+  /* ---------- storage ---------- */
+  var STORE = 'vidaaframe.v2';
+  function load() { try { var v = JSON.parse(localStorage.getItem(STORE) || 'null'); if (v) { S.row = v.row | 0; S.i = v.i || [0, 0]; } } catch (e) {} }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify({ row: S.row, i: S.i })); } catch (e) {} }
 
-  /* ---------- stage scale ---------- */
   function fit() {
     var w = window.innerWidth || 1920, h = window.innerHeight || 1080, k = Math.min(w / 1920, h / 1080);
-    var st = $('stage');
-    st.style.transform = 'translate(' + Math.round((w - 1920 * k) / 2) + 'px,' + Math.round((h - 1080 * k) / 2) + 'px) scale(' + k + ')';
+    $('stage').style.transform = 'translate(' + Math.round((w - 1920 * k) / 2) + 'px,' + Math.round((h - 1080 * k) / 2) + 'px) scale(' + k + ')';
   }
 
-  /* ---------- clock widget ---------- */
+  /* ---------- clock ---------- */
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var lastMin = -1;
   function tick() {
-    var d = new Date(), m = d.getHours() * 60 + d.getMinutes();
-    if (m === lastMin) return;
-    lastMin = m;
+    var d = new Date(), key = d.getHours() * 60 + d.getMinutes();
+    if (key === lastMin) return; lastMin = key;
     var h = d.getHours(), mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     if (C.clock.use24h) { $('hm').textContent = (h < 10 ? '0' : '') + h + ':' + mm; $('ampm').textContent = ''; }
-    else { $('hm').textContent = ((h % 12) || 12) + ':' + mm; $('ampm').textContent = h < 12 ? 'am' : 'pm'; }
-    $('date').textContent = C.clock.showDate ? DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] : '';
-    var part = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-    $('greet').textContent = C.clock.showGreeting ? part + (C.owner ? ', ' + C.owner : '') : '';
+    else { $('hm').textContent = ((h % 12) || 12) + ':' + mm; $('ampm').textContent = h < 12 ? 'AM' : 'PM'; }
+    $('date').textContent = C.clock.showDate ? DAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MON[d.getMonth()] : '';
   }
 
-  /* ---------- live wallpaper ---------- */
+  /* ---------- network chip ---------- */
+  function updateNet() {
+    var n = D.network(), label = D.netLabel(n), chip = $('netChip');
+    $('netText').textContent = label;
+    $('netIcon').innerHTML = label === 'Ethernet' ? glyph('dex') : glyph('wifi');
+    if (n.online) chip.className = 'chip'; else chip.className = 'chip off';
+  }
+
+  /* ---------- wallpaper ---------- */
   var W = { i: 0, front: 'wallA' };
-  function photoUrl(id) { return 'wp-' + id + '.jpg'; }
   function showPhoto(i) {
-    var list = C.wallpaper.photos, url = photoUrl(list[i % list.length]), img = new Image();
+    var list = C.wallpaper.photos, url = 'wp-' + list[i % list.length] + '.jpg', img = new Image();
     img.onload = function () {
-      var back = W.front === 'wallA' ? 'wallB' : 'wallA', b = $(back), f = $(W.front);
-      b.style.backgroundImage = 'url(' + url + ')';
-      b.className = 'layer on ' + (i % 2 ? 'drift-b' : 'drift-a');
-      f.className = f.className.replace(' on', '').replace('layer on', 'layer');
+      var back = W.front === 'wallA' ? 'wallB' : 'wallA';
+      $(back).style.backgroundImage = 'url(' + url + ')';
+      $(back).className = 'layer on ' + (i % 2 ? 'drift-b' : 'drift-a');
+      $(W.front).className = 'layer';
       W.front = back;
     };
     img.src = url;
   }
   function startWallpaper() {
     var v = $('wallVideo');
-    function live() {
-      showPhoto(0);
-      setInterval(function () { W.i += 1; showPhoto(W.i); }, Math.max(0.5, C.wallpaper.minutesPerPhoto) * 60000);
-    }
+    function live() { showPhoto(0); setInterval(function () { W.i += 1; showPhoto(W.i); }, Math.max(0.5, C.wallpaper.minutesPerPhoto) * 60000); }
     if (C.wallpaper.mode === 'video') {
-      var failed = false;
-      v.onerror = function () { if (!failed) { failed = true; v.className = ''; live(); } };
-      v.src = C.wallpaper.videoFile;
-      v.className = 'on';
+      var fell = false;
+      v.onerror = function () { if (!fell) { fell = true; v.className = ''; live(); } };
+      v.src = C.wallpaper.videoFile; v.className = 'on';
       try { var p = v.play(); if (p && p['catch']) p['catch'](function () { v.onerror(); }); } catch (e) { v.onerror(); }
       return;
     }
     live();
   }
 
-  /* ---------- rows ---------- */
-  function buildRows() {
-    $('trackApps').innerHTML = C.apps.map(function (a, i) {
-      return '<div class="tile app" id="a' + i + '"><div class="ic">' + appBadge(a) + '</div><div class="nm">' + esc(a.name) + '</div></div>';
+  /* ---------- build rows ---------- */
+  function build() {
+    $('trackDock').innerHTML = C.apps.map(function (a, i) {
+      return '<div class="tile dockTile" id="d' + i + '"><div class="ic">' + dockIcon(a) + '</div><div class="nm">' + esc(a.label) + '</div></div>';
     }).join('');
-    $('trackConn').innerHTML = C.connections.map(function (c, i) {
-      return '<div class="tile conn" id="c' + i + '"><div class="ic">' + glyph(c.glyph) + '</div><div class="nm">' + esc(c.name) + '</div></div>';
+    $('trackTray').innerHTML = C.connections.map(function (c, i) {
+      return '<div class="tile trayTile" id="t' + i + '"><div class="ic">' + glyph(c.glyph) + '</div><div class="nm">' + esc(c.label) + '</div></div>';
     }).join('');
   }
   function rowLen(r) { return r === 0 ? C.apps.length : C.connections.length; }
-  function scrollTrack(r) {
-    var pitch = r === 0 ? APP_PITCH : CONN_PITCH, n = rowLen(r), i = S.idx[r];
-    var full = n * pitch, x = 0;
-    if (full > VISIBLE_W) { x = Math.min(Math.max(0, i * pitch - pitch), full - VISIBLE_W + 40); }
-    $(r === 0 ? 'trackApps' : 'trackConn').style.transform = 'translateX(' + (-x) + 'px)';
+  function scrollRow(r) {
+    var pitch = r === 0 ? DOCK_PITCH : TRAY_PITCH, n = rowLen(r), i = S.i[r], full = n * pitch, x = 0;
+    if (full > VIEW_W) x = Math.min(Math.max(0, i * pitch - pitch), full - VIEW_W + 36);
+    $(r === 0 ? 'trackDock' : 'trackTray').style.transform = 'translateX(' + (-x) + 'px)';
   }
   function paint() {
-    var els = document.querySelectorAll('.row .tile');
-    for (var k = 0; k < els.length; k++) els[k].className = els[k].className.replace(' focus', '');
-    var id = (S.row === 0 ? 'a' : 'c') + S.idx[S.row], el = $(id);
-    if (el && !S.panel) el.className += ' focus';
-    $('rowApps').className = 'row' + (S.row === 0 ? ' active' : '');
-    $('rowConn').className = 'row' + (S.row === 1 ? ' active' : '');
-    scrollTrack(0); scrollTrack(1);
+    var els = document.querySelectorAll('#rows .tile'), k;
+    for (k = 0; k < els.length; k++) els[k].className = els[k].className.replace(' focus', '');
+    if (!S.sheet) { var el = $((S.row === 0 ? 'd' : 't') + S.i[S.row]); if (el) el.className += ' focus'; }
+    $('rowDock').className = 'row' + (S.row === 0 ? ' active' : '');
+    $('rowTray').className = 'row' + (S.row === 1 ? ' active' : '');
+    scrollRow(0); scrollRow(1);
   }
 
-  /* ---------- toast ---------- */
-  var toastTimer = null;
-  function toast(msg, detail, ms) {
-    $('toastMsg').textContent = msg; $('toastDetail').textContent = detail || '';
-    $('toast').className = '';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(hideToast, ms || 7000);
+  /* ---------- open apps ---------- */
+  function findInstalled(pattern) {
+    var re = new RegExp(pattern, 'i');
+    for (var i = 0; i < INSTALLED.length; i++) if (re.test(INSTALLED[i].name)) return INSTALLED[i];
+    return null;
   }
-  function hideToast() { $('toast').className = 'hidden'; }
-
-  /* ---------- installed apps ---------- */
-  function installed(done) {
-    if (S.installed) { done(S.installed); return; }
-    D.apps(function (err, list, how) { S.installed = list || []; S.installedHow = how; done(S.installed, err); });
+  function openUrl(url) {
+    if (!D.isTV()) { flash('Preview', 'On the TV this opens:\n' + url); return; }
+    save(); D.open(url);
   }
-  function findApp(pattern, done) {
-    installed(function (list) {
-      var re = new RegExp(pattern, 'i'), hit = null;
-      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) { hit = list[i]; break; }
-      done(hit);
-    });
-  }
-  function go(url, label, viaBrowser) {
-    if (!D.isTV()) { toast('Preview mode', 'On the TV, ' + label + ' opens ' + url); return; }
-    save();
-    if (viaBrowser) D.browse(url, function () {}); else location.href = url;
-  }
-  function launchRecord(app) {
-    if (!D.isTV()) { toast('Preview mode', 'On the TV this opens ' + app.name + '.'); return; }
-    save();
-    D.launch(app, function (err) { if (err) toast(err.message, err.detail); });
-  }
-
-  /* ---------- actions ---------- */
-  function activateApp(a) {
+  function activateDock(a) {
     if (a.type === 'folder') { openMore(); return; }
-    if (a.type === 'web') { go(a.url, a.name, a.inBrowser); return; }
-    findApp(a.match || a.name, function (hit) {
-      if (hit) launchRecord(hit);
-      else if (a.fallbackUrl) go(a.fallbackUrl, a.name, false);
-      else toast(a.name + ' isn’t reachable from the launcher yet', 'Use the remote’s Home or Apps button for now — Launcher info will tell me how to wire it up.');
-    });
+    if (a.type === 'web') { openUrl(a.url); return; }
+    if (a.type === 'browser') { openUrl('https://www.bing.com'); return; }
+    if (a.type === 'match') {
+      var hit = findInstalled(a.match);
+      if (hit && hit.web && hit.url) openUrl(hit.url);
+      else if (a.fallback) openUrl(a.fallback);
+      else nativeBlocked(a.label);
+      return;
+    }
   }
-  function activateConn(c) {
-    if (c.type === 'diagnostics') { openDiag(); return; }
-    findApp(c.match || c.name, function (hit) {
-      if (hit) launchRecord(hit);
-      else toast(c.name, c.help);
-    });
+  function activateTray(c) {
+    if (c.type === 'info') { openInfo(); return; }
+    openConnection(c);
   }
 
-  /* ---------- panels ---------- */
-  function openPanel(kind, title, hint) {
-    S.panel = kind; $('panelTitle').textContent = title; $('panelHint').textContent = hint || '';
-    $('panel').className = ''; document.body.className = 'panel-open'; paint();
+  /* ---------- sheet plumbing ---------- */
+  function openSheet(kind, title, hint, html) {
+    if (S.closeTimer) { clearTimeout(S.closeTimer); S.closeTimer = 0; }
+    S.sheet = kind; $('sheetTitle').textContent = title; $('sheetHint').textContent = hint || '';
+    $('sheetBody').innerHTML = html || ''; $('sheet').className = ''; document.body.className = 'sheet-open'; paint();
   }
-  function closePanel() { S.panel = null; $('panel').className = 'hidden'; document.body.className = ''; $('panelBody').innerHTML = ''; paint(); }
+  function closeSheet() {
+    var s = $('sheet'); s.className = 'closing';
+    S.closeTimer = setTimeout(function () { if (!S.sheet) s.className = 'hidden'; S.closeTimer = 0; }, 280);
+    S.sheet = null; S.fnOpen = false; document.body.className = ''; paint();
+  }
 
+  /* More Apps */
   function openMore() {
-    openPanel('more', 'More Apps', 'Arrows to move · OK to open · Back to return');
-    $('panelBody').innerHTML = '<div class="empty">Loading apps…</div>';
-    installed(function (list) {
-      var home = C.apps.map(function (a) { return a.match ? new RegExp(a.match, 'i') : null; }).filter(Boolean);
-      S.grid = list.filter(function (x) { return !home.some(function (re) { return re.test(x.name); }) && !/vidaa frame/i.test(x.name); });
-      S.grid.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
-      S.gi = 0;
-      if (!S.grid.length) {
-        $('panelBody').innerHTML = '<div class="empty">' + (D.isTV()
-          ? 'Your TV hasn’t shared its installed-app list with the launcher yet.<br>Open <b>Connections → Launcher info</b> and send a photo — that tells me how to read it on firmware ' + esc(D.info().Hisense_GetFirmWareVersion || 'V0000.09.60D') + '.'
-          : 'Preview mode: on the TV this folder lists every installed app that isn’t already on Home.') + '</div>';
-        return;
-      }
-      $('panelBody').innerHTML = '<div class="grid" id="grid">' + S.grid.map(function (x, i) {
-        var icon = x.icon ? '<img src="' + esc(x.icon) + '" alt="">' : '<span>' + esc(x.name.charAt(0)) + '</span>';
-        return '<div class="tile app" id="g' + i + '"><div class="ic"><div class="badge" style="background:#3a3a44">' + icon + '</div></div><div class="nm">' + esc(x.name) + '</div></div>';
-      }).join('') + '</div>';
-      paintGrid();
-    });
+    S.grid = INSTALLED.slice(); S.gi = 0;
+    var html = '<div class="grid" id="grid">' + S.grid.map(function (x, i) {
+      var ic = x.icon ? '<img src="' + esc(x.icon) + '" alt="">' : '<span class="badge">' + esc(x.name.charAt(0)) + '</span>';
+      return '<div class="gtile" id="g' + i + '"><div class="ic">' + ic + '</div>' +
+        (x.web ? '' : '<span class="web0">TV</span>') + '<div class="nm">' + esc(x.name) + '</div></div>';
+    }).join('') + '</div>';
+    openSheet('more', 'More Apps', 'Arrows to move · OK to open · Back to close', html);
+    paintGrid();
   }
   function paintGrid() {
-    for (var i = 0; i < S.grid.length; i++) { var e = $('g' + i); if (e) e.className = 'tile app' + (i === S.gi ? ' focus' : ''); }
-    var rowN = Math.floor(S.gi / 5), y = Math.max(0, rowN - 1) * 244;
+    for (var i = 0; i < S.grid.length; i++) { var e = $('g' + i); if (e) e.className = 'gtile' + (i === S.gi ? ' focus' : ''); }
+    var perRow = 5, rowN = Math.floor(S.gi / perRow), y = Math.max(0, rowN - 1) * 242;
     var g = $('grid'); if (g) g.style.transform = 'translateY(' + (-y) + 'px)';
   }
+  function openGrid(x) {
+    if (x.web && x.url) openUrl(x.url); else nativeBlocked(x.name);
+  }
 
-  function openDiag() {
-    openPanel('diag', 'Launcher info', 'Up/Down to scroll · Back to return · Take a photo of each screen and send it to Claude');
-    var fns = D.discover(), inf = D.info(), html = [];
-    html.push('<div class="h">This TV</div>');
-    Object.keys(inf).forEach(function (k) { html.push(esc(k) + ': ' + esc(inf[k])); });
-    html.push('<div class="h">Hidden functions found: ' + fns.length + '</div>');
-    if (!fns.length) html.push('<span class="warn">None — this page is running outside the TV (preview), or the TV hides them from this app.</span>');
+  /* Connection quick-panel (iOS Control Center style) */
+  function openConnection(c) {
+    var steps = (c.steps || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('');
+    var html = '<div class="cc"><div class="ring">' + glyph(c.glyph) + '</div>' +
+      '<h2>' + esc(c.label) + '</h2><div class="sub">VIDAA keeps this off‑limits to apps — here’s the quick way:</div>' +
+      '<ol>' + steps + '</ol>' + (c.note ? '<div class="cnote">' + esc(c.note) + '</div>' : '') + '</div>';
+    openSheet('cc', '', 'Back to close', html);
+  }
+  function nativeBlocked(name) {
+    var html = '<div class="cc"><div class="ring">' + glyph('grid') + '</div>' +
+      '<h2>' + esc(name) + '</h2><div class="sub">This one is a built‑in TV app.</div>' +
+      '<ol><li>Press Home on the remote</li><li>Open ' + esc(name) + ' from the TV’s own row</li></ol>' +
+      '<div class="cnote">VIDAA doesn’t let the launcher start built‑in apps. Web apps open here directly.</div></div>';
+    openSheet('cc', '', 'Back to close', html);
+  }
+  function flash(title, msg) {
+    var html = '<div class="cc"><h2>' + esc(title) + '</h2><div class="sub" style="white-space:pre-line">' + esc(msg) + '</div></div>';
+    openSheet('cc', '', 'Back to close', html);
+  }
+
+  /* Launcher info */
+  function openInfo() {
+    var di = D.deviceInfo(), n = D.network();
+    var dev = '';
+    var order = [['model', 'Model'], ['firmware', 'Firmware'], ['os', 'System'], ['chromium', 'Browser engine'], ['brand', 'Brand'], ['region', 'Region']];
+    for (var i = 0; i < order.length; i++) if (di[order[i][0]]) dev += '<div><b>' + order[i][1] + '</b>' + esc(di[order[i][0]]) + '</div>';
+    dev += '<div><b>Network</b>' + esc(D.netLabel(n)) + (n.ip ? ' · ' + esc(n.ip) : '') + '</div>';
+    var html = '<div class="info" id="info">' +
+      '<div class="card"><div class="credit"><div class="big">VIDAA Frame</div>Version ' + esc(C.version) +
+      '<br>Made by ' + esc(C.author) + '<br>© ' + new Date().getFullYear() + ' ' + esc(C.author) + '. All rights reserved.</div></div>' +
+      '<div class="card"><h3>This TV</h3><div class="kv">' + dev + '</div></div>' +
+      '<div class="card"><div class="btn" id="fnBtn">Hidden functions ›</div></div>' +
+      '<div id="fnHolder"></div></div>';
+    openSheet('info', 'Launcher info', 'OK on “Hidden functions” to explore · Up/Down to scroll · Back to close', html);
+    S.btn = true; S.scroll = 0; paintBtn();
+  }
+  function paintBtn() { var b = $('fnBtn'); if (b) b.className = 'btn' + (S.btn && !S.fnOpen ? ' focus' : ''); }
+  function toggleFns() {
+    if (S.fnOpen) return;
+    S.fnOpen = true; paintBtn();
+    var fns = D.discover(), html = ['<div class="card"><h3>Hidden functions on this TV: ' + fns.length + '</h3><div class="fnlist" id="fnlist">'];
+    var cat = '';
     fns.forEach(function (f) {
-      var cls = f.danger ? 'warn' : (f.launchy ? 'go' : '');
-      html.push('<span class="' + cls + '">' + esc(f.name) + (f.type === 'function' ? '(' + f.arity + ')' : ' : ' + f.type) + '</span>');
-      if (f.src) html.push('<div class="src">' + esc(f.src) + '</div>');
+      var c = f.danger ? 'warn' : (f.getter ? 'get' : '');
+      html.push('<div class="' + c + '">' + esc(f.name) + (f.type === 'function' ? '(' + f.arity + ')' : ' : ' + f.type) + '</div>');
     });
-    installed(function (list) {
-      html.push('<div class="h">Installed apps read: ' + list.length + ' (' + esc(S.installedHow || 'none') + ')</div>');
-      list.forEach(function (a) { html.push(esc(a.name) + ' — ' + esc(a.id) + (a.url ? ' — ' + esc(String(a.url).slice(0, 90)) : '')); });
-      $('panelBody').innerHTML = '<div class="diag" id="diag">' + html.join('<br>') + '</div>';
-      S.diagY = 0; S.diagH = $('diag').offsetHeight;
-    });
+    html.push('</div></div>');
+    $('fnHolder').innerHTML = html.join('');
+    S.fnH = $('fnlist').offsetHeight;
   }
 
   /* ---------- input ---------- */
   var held = {};
-  function onKey(e) {
-    var k = KEYS[e.keyCode];
-    if (!k) return;
-    e.preventDefault();
+  function key(e) {
+    var k = KEYS[e.keyCode]; if (!k) return; e.preventDefault();
     if (k === 'ok' || k === 'back') { if (held[k]) return; held[k] = true; }
-    if ($('toast').className !== 'hidden') { hideToast(); if (k === 'ok' || k === 'back') return; }
 
-    if (S.panel === 'more') {
-      if (k === 'back') { closePanel(); return; }
-      if (!S.grid.length) return;
-      var n = S.grid.length;
-      if (k === 'left' && S.gi % 5) S.gi -= 1;
-      else if (k === 'right' && S.gi % 5 < 4 && S.gi + 1 < n) S.gi += 1;
+    if (S.sheet === 'more') {
+      if (k === 'back') return closeSheet();
+      var n = S.grid.length; if (!n) return;
+      if (k === 'left' && S.gi % 5) S.gi--;
+      else if (k === 'right' && S.gi % 5 < 4 && S.gi + 1 < n) S.gi++;
       else if (k === 'up' && S.gi >= 5) S.gi -= 5;
-      else if (k === 'down' && S.gi + 5 < n) S.gi += 5;
-      else if (k === 'ok') { launchRecord(S.grid[S.gi]); return; }
-      paintGrid(); return;
+      else if (k === 'down' && S.gi + 5 < n) S.gi = Math.min(n - 1, S.gi + 5);
+      else if (k === 'ok') return openGrid(S.grid[S.gi]);
+      return paintGrid();
     }
-    if (S.panel === 'diag') {
-      if (k === 'back' || k === 'ok') { closePanel(); return; }
-      if (k === 'down') S.diagY = Math.min(Math.max(0, S.diagH - 700), S.diagY + 340);
-      if (k === 'up') S.diagY = Math.max(0, S.diagY - 340);
-      var d = $('diag'); if (d) d.style.transform = 'translateY(' + (-S.diagY) + 'px)';
+    if (S.sheet === 'cc') { if (k === 'back' || k === 'ok') closeSheet(); return; }
+    if (S.sheet === 'info') {
+      if (k === 'back') return closeSheet();
+      if (k === 'ok' && S.btn && !S.fnOpen) return toggleFns();
+      if ((k === 'down' || k === 'up') && S.fnOpen) {
+        var max = Math.max(0, (S.fnH || 0) - 560);
+        S.scroll = k === 'down' ? Math.min(max, S.scroll + 320) : Math.max(0, S.scroll - 320);
+        var el = $('info'); if (el) el.style.transform = 'translateY(' + (-S.scroll) + 'px)';
+      }
       return;
     }
+
     var r = S.row;
-    if (k === 'left' && S.idx[r] > 0) S.idx[r] -= 1;
-    else if (k === 'right' && S.idx[r] < rowLen(r) - 1) S.idx[r] += 1;
-    else if (k === 'down' && r === 0) { S.row = 1; S.idx[1] = Math.min(S.idx[1], rowLen(1) - 1); }
+    if (k === 'left' && S.i[r] > 0) S.i[r]--;
+    else if (k === 'right' && S.i[r] < rowLen(r) - 1) S.i[r]++;
+    else if (k === 'down' && r === 0) { S.row = 1; S.i[1] = Math.min(S.i[1], rowLen(1) - 1); }
     else if (k === 'up' && r === 1) S.row = 0;
-    else if (k === 'ok') { if (r === 0) activateApp(C.apps[S.idx[0]]); else activateConn(C.connections[S.idx[1]]); return; }
+    else if (k === 'ok') { if (r === 0) activateDock(C.apps[S.i[0]]); else activateTray(C.connections[S.i[1]]); return; }
     else return;
     save(); paint();
   }
-  function onKeyUp(e) { var k = KEYS[e.keyCode]; if (k) held[k] = false; }
+  function keyUp(e) { var k = KEYS[e.keyCode]; if (k) held[k] = false; }
 
   /* ---------- boot ---------- */
   load();
-  S.idx[0] = Math.min(S.idx[0], rowLen(0) - 1); S.idx[1] = Math.min(S.idx[1], rowLen(1) - 1);
-  buildRows(); fit(); tick(); paint(); startWallpaper();
+  S.i[0] = Math.min(S.i[0], rowLen(0) - 1); S.i[1] = Math.min(S.i[1], rowLen(1) - 1);
+  build(); fit(); tick(); paint(); startWallpaper(); updateNet();
   setInterval(tick, 1000);
+  setInterval(updateNet, 15000);
   window.addEventListener('resize', fit);
-  document.addEventListener('keydown', onKey);
-  document.addEventListener('keyup', onKeyUp);
-  setTimeout(function () { installed(function () {}); }, 400); /* warm the app list */
-  window.VF = { state: function () { return { row: S.row, idx: S.idx.slice(), panel: S.panel }; } };
+  document.addEventListener('keydown', key);
+  document.addEventListener('keyup', keyUp);
+  window.VF = { state: function () { return { row: S.row, i: S.i.slice(), sheet: S.sheet }; } };
 }());
