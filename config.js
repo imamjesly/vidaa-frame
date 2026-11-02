@@ -1,7 +1,7 @@
 /* VIDAA Frame — your settings. Edit, re-upload to GitHub, the TV picks it up next open.
    Plain ES5 (old TV browser): no arrow functions, no let/const, no trailing commas. */
 window.VF_CONFIG = {
-  version: '5.0.0',
+  version: '5.1.0',
   author: 'Imaam Jesly',
 
   clock: { use24h: false, showDate: true },

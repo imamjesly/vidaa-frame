@@ -62,6 +62,17 @@
       })['catch'](function () { return false; });
   }
 
+  /* One-time token hand-off: a URL with #sp=<refresh_token> seeds the account on this device
+     without any login screen. The token is read, stored locally, then wiped from the URL. */
+  function ingestHash() {
+    var h = location.hash || '';
+    var m = h.match(/[#&]sp=([^&]+)/);
+    if (!m) return false;
+    store({ access: '', refresh: decodeURIComponent(m[1]), exp: 0 });
+    try { history.replaceState({}, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+    return true;
+  }
+
   function isConnected() { return !!(loadTok() && tok.refresh); }
 
   function getToken() {
@@ -133,7 +144,7 @@
   function onState(cb) { stateCb = cb; }
 
   window.VFSpotify = {
-    enabled: !!C.clientId, handleRedirect: handleRedirect, connect: connect, isConnected: isConnected,
+    enabled: !!C.clientId, handleRedirect: handleRedirect, ingestHash: ingestHash, connect: connect, isConnected: isConnected,
     ensurePlayer: ensurePlayer, startPlayback: startPlayback, toggle: toggle, next: next, prev: prev, seek: seek, onState: onState
   };
 }());

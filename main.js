@@ -267,6 +267,11 @@
 
   if (MUSIC) {
     SP.onState(function (st) { S.mState = st; if (S.mShow) renderMusic(); });
+    var seeded = SP.ingestHash && SP.ingestHash();
+    if (seeded) {
+      flash('Spotify connected', 'Your account is linked on this TV.\nOpen Home and press ▶II to play.\nYou can delete the “Spotify Setup” tile now.');
+      setTimeout(function () { if (SP.isConnected()) { showMusicCard(true); musicInvoke(); } }, 400);
+    }
     SP.handleRedirect().then(function (ok) {
       var pending = false; try { pending = sessionStorage.getItem('vf.play') === '1'; } catch (e) {}
       if (ok && pending) { try { sessionStorage.removeItem('vf.play'); } catch (e) {} musicInvoke(); }
